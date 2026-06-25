@@ -303,6 +303,27 @@ void TestGUI(interfaces::Node& node, const std::shared_ptr<CWallet>& wallet)
     walletModel.pollBalanceChanged(); // Manual balance polling update
     CompareBalance(walletModel, walletModel.wallet().getBalances().balance, overviewPage.findChild<QLabel*>("labelBalance"));
 
+    // Non-mempool balance is always < 0 when present (coins spent by non-mempool txs);
+    // labels should be hidden when zero (no such txs exist)
+    QLabel* labelNonMempool = overviewPage.findChild<QLabel*>("labelNonMempool");
+    QLabel* labelNonMempoolText = overviewPage.findChild<QLabel*>("labelNonMempoolText");
+    QVERIFY(!labelNonMempool->isVisible());
+    QVERIFY(!labelNonMempoolText->isVisible());
+
+    // When nonmempool_balance < 0, labels should appear and show the correct negative value
+    interfaces::WalletBalances balances_nm = walletModel.getCachedBalance();
+    balances_nm.nonmempool_balance = -1 * COIN;
+    overviewPage.setBalance(balances_nm);
+    QVERIFY(labelNonMempool->isVisible());
+    QVERIFY(labelNonMempoolText->isVisible());
+    CompareBalance(walletModel, balances_nm.nonmempool_balance, labelNonMempool);
+
+    // Back to zero — labels should hide again
+    balances_nm.nonmempool_balance = 0;
+    overviewPage.setBalance(balances_nm);
+    QVERIFY(!labelNonMempool->isVisible());
+    QVERIFY(!labelNonMempoolText->isVisible());
+
     // Check Request Payment button
     ReceiveCoinsDialog receiveCoinsDialog(platformStyle.get());
     receiveCoinsDialog.setModel(&walletModel);
