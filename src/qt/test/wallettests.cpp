@@ -30,6 +30,8 @@
 #include <wallet/test/util.h>
 #include <wallet/wallet.h>
 
+#include <util/fs.h>
+
 #include <chrono>
 #include <memory>
 
@@ -435,6 +437,38 @@ void TestGUIWatchOnly(interfaces::Node& node, TestChain100Setup& test)
     QVERIFY(psbt);
 }
 
+void TestExportWatchOnly(interfaces::Node& node, TestChain100Setup& test)
+{
+    std::unique_ptr<const PlatformStyle> platformStyle(PlatformStyle::instantiate("other"));
+
+    // Descriptor wallet with private keys: export should succeed
+    {
+        const std::shared_ptr<CWallet>& wallet = SetupDescriptorsWallet(node, test);
+        MiniGUI mini_gui(node, platformStyle.get());
+        mini_gui.initModelForWallet(node, wallet, platformStyle.get());
+        WalletModel& walletModel = *mini_gui.walletModel;
+
+        QVERIFY(!walletModel.wallet().privateKeysDisabled());
+
+        fs::path dest = fs::temp_directory_path() / "exported_watchonly_test.sqlite";
+        fs::remove(dest);
+        util::Result<std::string> result = walletModel.wallet().exportWatchOnlyWallet(dest);
+        QVERIFY(result);
+        QVERIFY(fs::exists(dest));
+        fs::remove(dest);
+    }
+
+    // Watchonly wallet: privateKeysDisabled() is true, so the export action should be disabled
+    {
+        const std::shared_ptr<CWallet>& wo_wallet = SetupDescriptorsWallet(node, test, /*watch_only=*/true);
+        MiniGUI mini_gui_wo(node, platformStyle.get());
+        mini_gui_wo.initModelForWallet(node, wo_wallet, platformStyle.get());
+        WalletModel& wo_walletModel = *mini_gui_wo.walletModel;
+
+        QVERIFY(wo_walletModel.wallet().privateKeysDisabled());
+    }
+}
+
 void TestGUI(interfaces::Node& node)
 {
     // Set up wallet and chain with 105 blocks (5 mature blocks for spending).
@@ -453,6 +487,9 @@ void TestGUI(interfaces::Node& node)
     // Legacy watch-only wallet test
     // Verify PSBT creation.
     TestGUIWatchOnly(node, test);
+
+    // Export watchonly wallet via interface
+    TestExportWatchOnly(node, test);
 }
 
 } // namespace
