@@ -38,7 +38,12 @@ public:
         ForEditing  /**< Open address book for editing */
     };
 
-    explicit AddressBookPage(const PlatformStyle *platformStyle, Mode mode, Tabs tab, QWidget *parent = nullptr);
+    enum class Filter {
+        None,
+        Signable,
+    };
+
+    explicit AddressBookPage(const PlatformStyle *platformStyle, Mode mode, Tabs tab, QWidget *parent = nullptr, Filter filter = Filter::None);
     ~AddressBookPage();
 
     void setModel(AddressTableModel *model);
@@ -52,6 +57,7 @@ private:
     AddressTableModel* model{nullptr};
     Mode mode;
     Tabs tab;
+    Filter filter;
     QString returnValue;
     AddressBookSortFilterProxyModel *proxyModel;
     QMenu *contextMenu;

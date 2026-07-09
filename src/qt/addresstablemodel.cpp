@@ -74,15 +74,12 @@ public:
     explicit AddressTablePriv(AddressTableModel *_parent):
         parent(_parent) {}
 
-    void refreshAddressTable(interfaces::Wallet& wallet, bool pk_hash_only = false)
+    void refreshAddressTable(interfaces::Wallet& wallet)
     {
         cachedAddressTable.clear();
         {
             for (const auto& address : wallet.getAddresses())
             {
-                if (pk_hash_only && !std::holds_alternative<PKHash>(address.dest)) {
-                    continue;
-                }
                 AddressTableEntry::Type addressType = translateTransactionType(
                         address.purpose, address.is_mine);
                 cachedAddressTable.append(AddressTableEntry(addressType,
@@ -161,12 +158,12 @@ public:
     }
 };
 
-AddressTableModel::AddressTableModel(WalletModel *parent, bool pk_hash_only) :
+AddressTableModel::AddressTableModel(WalletModel *parent) :
     QAbstractTableModel(parent), walletModel(parent)
 {
     columns << tr("Label") << tr("Address");
     priv = new AddressTablePriv(this);
-    priv->refreshAddressTable(parent->wallet(), pk_hash_only);
+    priv->refreshAddressTable(parent->wallet());
 }
 
 AddressTableModel::~AddressTableModel()
@@ -229,6 +226,11 @@ QVariant AddressTableModel::data(const QModelIndex &index, int role) const
             return {};
         } // no default case, so the compiler can warn about missing cases
         assert(false);
+    } else if (role == CanSignMessageRole) {
+        const auto destination{DecodeDestination(rec->address.toStdString())};
+        return std::holds_alternative<PKHash>(destination) &&
+               !walletModel->wallet().privateKeysDisabled() &&
+               walletModel->wallet().isSpendable(destination);
     }
     return QVariant();
 }

@@ -30,7 +30,7 @@ class AddressTableModel : public QAbstractTableModel
     Q_OBJECT
 
 public:
-    explicit AddressTableModel(WalletModel *parent = nullptr, bool pk_hash_only = false);
+    explicit AddressTableModel(WalletModel *parent = nullptr);
     ~AddressTableModel();
 
     enum ColumnIndex {
@@ -39,7 +39,8 @@ public:
     };
 
     enum RoleIndex {
-        TypeRole = Qt::UserRole /**< Type of address (#Send or #Receive) */
+        TypeRole = Qt::UserRole, /**< Type of address (#Send or #Receive) */
+        CanSignMessageRole /**< Whether the address can be used for message signing */
     };
 
     /** Return status of edit/insert operation */
